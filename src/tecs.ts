@@ -15,6 +15,9 @@ export interface Entity {
   get id(): EntityId;
   get tag(): EntityTag;
   getComponent<T extends typeof Component>(type: T): InstanceType<T> | undefined;
+  getComponents<T extends typeof Component[]>(...types: T): {
+    [K in keyof T]: InstanceType<T[K]> | undefined
+  };
   addComponent<T extends typeof Component>(component: InstanceType<T> | T): Entity;
   removeComponent<T extends typeof Component>(type: T): void;
 }
@@ -44,6 +47,16 @@ class EntityImpl implements Entity {
     }
 
     return comp as InstanceType<T>;
+  }
+
+  public getComponents<T extends (typeof Component)[]>(...types: T): { [K in keyof T]: InstanceType<T[K]> | undefined; } {
+
+    let components: { [K in keyof T]: InstanceType<T[K]> | undefined; } = {} as any; // gross hack, but it works
+    for (const component of types) {
+      components.push(this.getComponent(component))
+    }
+
+    return components;
   }
 
   public addComponent<T extends typeof Component>(component: InstanceType<T> | T): typeof this {
