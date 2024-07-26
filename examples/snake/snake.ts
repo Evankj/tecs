@@ -119,9 +119,6 @@ export class SnakeWorld extends World {
 
 let world = new SnakeWorld();
 
-
-
-
 const fps = 60;
 const fpsInterval = 1000 / fps;
 let then = performance.now();

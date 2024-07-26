@@ -69,6 +69,7 @@ export const snakeHeadMoveSystem: System = (world, entity, dt) => {
   // ] = entity.getComponents(Snake, InputHandler, Position, Speed)
 
   if (!snake || !input || !pos || !speed) return;
+  speed.val = 5;
 
   let gridPos = worldToGrid(pos.currentPosition, world.gridSquareSize);
   if (!vector2Match(gridPos, pos.previousPosition)) {

@@ -2,14 +2,44 @@ export type ComponentType = string;
 export type EntityTag = string | undefined;
 export type EntityId = number;
 
+// This interface just exists so we can reuse the encoder
+export interface ComponentSerialiser {
+  serialise(component: Component): Uint8Array;
+  deserialise<T extends Component>(data: Uint8Array): T;
+}
+
 export class Component {
+
   static type(): ComponentType {
     return this.name;
   }
+
   public type(): ComponentType {
     return this.constructor.name;
   }
+
+  public serialise(serialiser: ComponentSerialiser): Uint8Array {
+    return serialiser.serialise(this);
+  }
+
+  static deserialise<T extends Component>(this: new () => T, data: Uint8Array): T {
+    const jsonString = new TextDecoder().decode(data);
+    const jsonObject = JSON.parse(jsonString);
+
+    const instance = new this() as T;
+    Object.assign(instance, jsonObject);
+
+    return instance;
+  }
 }
+
+class Test extends Component { }
+
+let c: Test;
+
+let s: ComponentSerialiser;
+
+let d = Test.deserialise(s, c.serialise(s));
 
 export interface Entity {
   get id(): EntityId;
@@ -23,7 +53,7 @@ export interface Entity {
 }
 
 class EntityImpl implements Entity {
-  private components: Map<ComponentType, Component>;
+  private components: Record<ComponentType, Component | undefined>;
   private _tag: EntityTag;
   private _id: EntityId;
   public get tag(): EntityTag {
@@ -35,12 +65,12 @@ class EntityImpl implements Entity {
   constructor(id: EntityId, tag?: EntityTag) {
     this._id = id;
     this._tag = tag;
-    this.components = new Map();
+    this.components = {};
   }
 
   public getComponent<T extends typeof Component>(type: T): InstanceType<T> | undefined {
 
-    let comp = this.components.get(type.type());
+    let comp = this.components[type.type()];
 
     if (!comp) {
       return undefined;
@@ -69,13 +99,13 @@ class EntityImpl implements Entity {
       value = (new (component as T)()) as InstanceType<T>;
     }
 
-    this.components.set(component.type(), value);
+    this.components[component.type()] = value;
 
     return this;
   }
 
   public removeComponent<T extends typeof Component>(type: T) {
-    this.components.delete(type.type());
+    this.components[type.type()] = undefined;
   }
 }
 
@@ -85,6 +115,10 @@ export class World {
 
   public get entities() {
     return this._entities;
+  }
+
+  public get entityCount(): number {
+    return this._entities.length - this._freeIndexes.length;
   }
 
   public createEntity(tag?: string): Entity {
@@ -106,25 +140,4 @@ export class World {
       this._freeIndexes.push(index);
     }
   }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
